@@ -44,6 +44,7 @@ class MulticolorPolyline<R extends Object> extends Polyline<R> {
     Color borderColor = const Color(0xFFFFFF00),
     StrokeCap strokeCap = StrokeCap.round,
     bool useStrokeWidthInMeter = false,
+    double lateralOffset = 0,
     R? hitValue,
   })  : vertexColors = _validateVertexColors(points, vertexColors),
         simplificationColors =
@@ -62,6 +63,7 @@ class MulticolorPolyline<R extends Object> extends Polyline<R> {
           strokeCap: strokeCap,
           strokeJoin: StrokeJoin.round,
           useStrokeWidthInMeter: useStrokeWidthInMeter,
+          lateralOffset: lateralOffset,
           hitValue: hitValue,
         );
 

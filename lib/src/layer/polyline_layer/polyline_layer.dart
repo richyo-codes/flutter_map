@@ -12,6 +12,7 @@ import 'package:flutter_map/src/layer/shared/layer_projection_simplification/wid
 import 'package:flutter_map/src/layer/shared/line_patterns/pixel_hiker.dart';
 import 'package:flutter_map/src/misc/extensions.dart';
 import 'package:flutter_map/src/misc/offsets.dart';
+import 'package:flutter_map/src/misc/polyline_offsets.dart';
 import 'package:flutter_map/src/misc/simplify.dart';
 import 'package:flutter_map/src/misc/simplify_colored.dart';
 import 'package:latlong2/latlong.dart';
@@ -184,6 +185,12 @@ class _PolylineLayerState<R extends Object> extends State<PolylineLayer<R>>
     final (xEast, _) = projection.projectXY(const LatLng(0, 180));
     for (final projectedPolyline in polylines) {
       final polyline = projectedPolyline.polyline;
+      // Source-space clipping can discard a stroke shifted into the viewport
+      // and can change endpoint normals by removing neighboring segments.
+      if (polyline.lateralOffset != 0) {
+        yield projectedPolyline;
+        continue;
+      }
       final boundingBox = polyline.boundingBox;
 
       /// Check if the camera and the polyline overlap, latitude-wise.

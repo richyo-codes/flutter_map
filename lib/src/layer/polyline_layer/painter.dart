@@ -44,10 +44,12 @@ class _PolylinePainter<R extends Object> extends CustomPainter
     // }
 
     WorldWorkControl checkIfHit(double shift) {
-      final (offsets, _) = _helper.getOffsetsXY(
+      final (sourceOffsets, _) = _helper.getOffsetsXY(
         points: projectedPolyline.points,
         shift: shift,
       );
+      final offsets =
+          offsetPolylinePoints(sourceOffsets, polyline.lateralOffset);
 
       final strokeWidth = polyline.useStrokeWidthInMeter
           ? metersToScreenPixels(
@@ -133,10 +135,12 @@ class _PolylinePainter<R extends Object> extends CustomPainter
 
       /// Draws on a "single-world"
       WorldWorkControl drawIfVisible(double shift) {
-        final (offsets, _) = _helper.getOffsetsXY(
+        final (sourceOffsets, _) = _helper.getOffsetsXY(
           points: projectedPolyline.points,
           shift: shift,
         );
+        final offsets =
+            offsetPolylinePoints(sourceOffsets, polyline.lateralOffset);
 
         final strokeWidth = polyline.useStrokeWidthInMeter
             ? metersToScreenPixels(

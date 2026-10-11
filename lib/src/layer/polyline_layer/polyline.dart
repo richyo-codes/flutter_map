@@ -39,6 +39,15 @@ class Polyline<R extends Object> with HitDetectableElement<R> {
   /// Set to true if the width of the stroke should have meters as unit.
   final bool useStrokeWidthInMeter;
 
+  /// Lateral displacement in logical pixels, applied after simplification.
+  ///
+  /// Positive values shift right in the direction of travel; negative values
+  /// shift left. Coordinates remain unchanged. Sharp bends use a bounded miter
+  /// of at most four times the displacement. Hit testing follows the shifted
+  /// stroke. Geographic culling is bypassed to retain complete join geometry;
+  /// the painter still rejects off-screen strokes and segments.
+  final double lateralOffset;
+
   @override
   final R? hitValue;
 
@@ -61,8 +70,14 @@ class Polyline<R extends Object> with HitDetectableElement<R> {
     this.strokeCap = StrokeCap.round,
     this.strokeJoin = StrokeJoin.round,
     this.useStrokeWidthInMeter = false,
+    this.lateralOffset = 0,
     this.hitValue,
-  });
+  }) {
+    if (!lateralOffset.isFinite) {
+      throw ArgumentError.value(
+          lateralOffset, 'lateralOffset', 'must be finite');
+    }
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -79,6 +94,7 @@ class Polyline<R extends Object> with HitDetectableElement<R> {
           strokeCap == other.strokeCap &&
           strokeJoin == other.strokeJoin &&
           useStrokeWidthInMeter == other.useStrokeWidthInMeter &&
+          lateralOffset == other.lateralOffset &&
           hitValue == other.hitValue &&
           // Expensive computations last to take advantage of lazy logic gates
           listEquals(colorsStop, other.colorsStop) &&
@@ -100,6 +116,7 @@ class Polyline<R extends Object> with HitDetectableElement<R> {
         strokeCap,
         strokeJoin,
         useStrokeWidthInMeter,
+        lateralOffset,
       );
 
   int? _hashCode;

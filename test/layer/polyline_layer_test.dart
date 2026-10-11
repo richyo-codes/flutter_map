@@ -10,6 +10,97 @@ import 'package:latlong2/latlong.dart';
 import '../test_utils/test_app.dart';
 
 void main() {
+  test('offset identity and runtime validation', () {
+    const points = [LatLng(0, 0), LatLng(0, 1)];
+    expect(Polyline(points: points),
+        isNot(equals(Polyline(points: points, lateralOffset: 5))));
+    final first = MulticolorPolyline(points: points, lateralOffset: 5);
+    final second = MulticolorPolyline(points: points, lateralOffset: 5);
+    expect(first, equals(second));
+    expect(first.hashCode, second.hashCode);
+    for (final invalid in [
+      double.nan,
+      double.infinity,
+      double.negativeInfinity
+    ]) {
+      expect(() => Polyline(points: points, lateralOffset: invalid),
+          throwsArgumentError);
+      expect(() => MulticolorPolyline(points: points, lateralOffset: invalid),
+          throwsArgumentError);
+    }
+  });
+
+  for (final multicolor in [false, true]) {
+    testWidgets('offset stroke survives source culling multicolor=$multicolor',
+        (tester) async {
+      final controller = MapController();
+      final boundaryKey = GlobalKey();
+      await tester.pumpWidget(
+          _RenderingTestApp(boundaryKey: boundaryKey, controller: controller));
+      final points = [
+        controller.camera.screenOffsetToLatLng(const Offset(40, -8)),
+        controller.camera.screenOffsetToLatLng(const Offset(160, -8)),
+      ];
+      await tester.pumpWidget(_RenderingTestApp(
+        boundaryKey: boundaryKey,
+        controller: controller,
+        cullingMargin: 0,
+        polylines: [
+          if (multicolor)
+            MulticolorPolyline(
+              points: points,
+              vertexColors: const [Colors.red, Colors.blue],
+              strokeWidth: 6,
+              lateralOffset: 12,
+            )
+          else
+            Polyline(
+                points: points,
+                color: Colors.red,
+                strokeWidth: 6,
+                lateralOffset: 12),
+        ],
+      ));
+      final pixels = await _capturePixels(tester, boundaryKey);
+      expect(pixels.colorAt(100, 4), isNot(Colors.white));
+      expect(pixels.colorAt(100, 20), Colors.white);
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+    });
+  }
+
+  testWidgets('hit testing follows shifted stroke', (tester) async {
+    final controller = MapController();
+    final boundaryKey = GlobalKey();
+    final LayerHitNotifier<Object> hits = ValueNotifier(null);
+    await tester.pumpWidget(
+        _RenderingTestApp(boundaryKey: boundaryKey, controller: controller));
+    final points = [
+      controller.camera.screenOffsetToLatLng(const Offset(40, 100)),
+      controller.camera.screenOffsetToLatLng(const Offset(160, 100)),
+    ];
+    await tester.pumpWidget(_RenderingTestApp(
+      boundaryKey: boundaryKey,
+      controller: controller,
+      hitNotifier: hits,
+      polylines: [
+        Polyline(
+            points: points,
+            lateralOffset: 30,
+            strokeWidth: 6,
+            hitValue: 'route')
+      ],
+    ));
+    final origin = tester.getTopLeft(find.byKey(boundaryKey));
+    await tester.tapAt(origin + const Offset(100, 130));
+    expect(hits.value?.hitValues, ['route']);
+    await tester.tapAt(origin + const Offset(100, 100));
+    expect(hits.value, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+    hits.dispose();
+  });
+
   test('polyline equality is symmetric across rendering subtypes', () {
     const points = [LatLng(0, 0), LatLng(0, 1)];
     final plain = Polyline(points: points);
@@ -429,6 +520,7 @@ class _RenderingTestApp extends StatelessWidget {
     this.polylines = const [],
     this.simplificationTolerance = 0.4,
     this.cullingMargin,
+    this.hitNotifier,
   });
 
   final GlobalKey boundaryKey;
@@ -436,6 +528,7 @@ class _RenderingTestApp extends StatelessWidget {
   final List<Polyline> polylines;
   final double simplificationTolerance;
   final double? cullingMargin;
+  final LayerHitNotifier<Object>? hitNotifier;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -460,6 +553,7 @@ class _RenderingTestApp extends StatelessWidget {
                       PolylineLayer(
                         polylines: polylines,
                         cullingMargin: cullingMargin,
+                        hitNotifier: hitNotifier,
                         simplificationTolerance: simplificationTolerance,
                       ),
                   ],
