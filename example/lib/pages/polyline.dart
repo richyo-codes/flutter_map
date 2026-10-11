@@ -40,12 +40,23 @@ class _PolylinePageState extends State<PolylinePage> {
   List<Polyline<HitValue>>? _hoverLines;
 
   final _polylinesRaw = <Polyline<HitValue>>[
+    // Keep the recorded route visible beside its metric-colored stroke.
+    Polyline(
+      points: _gpsMetricPoints,
+      color: Colors.black54,
+      strokeWidth: 3,
+      hitValue: (
+        title: 'Recorded GPS Route',
+        subtitle: 'Original coordinates beside the speed-colored line',
+      ),
+    ),
     MulticolorPolyline(
       points: _gpsMetricPoints,
       vertexColors: _gpsSpeedKph.map(_speedColor).toList(growable: false),
       strokeWidth: 8,
       borderStrokeWidth: 2,
       borderColor: Colors.white,
+      lateralOffset: 12,
       hitValue: (
         title: 'GPS Speed Line',
         subtitle: 'Color encodes speed at each recorded GPS point',
